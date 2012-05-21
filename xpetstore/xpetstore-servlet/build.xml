@@ -1,0 +1,755 @@
+<project name="xpetstore-servlet" default="all" basedir="./">
+
+<!--
+    <property name="compiler" value="modern"/>
+    <property name="build.compiler" value="org.apache.tools.ant.taskdefs.CloverCompilerAdapter"/>
+-->
+<!-- -->
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Initialization                                 -->
+<!--                                                -->
+<!-- ============================================== -->
+   <target name="fail.check">
+    <!-- check whether we need to fail the build -->
+    <condition property="my.fail.build">
+      <equals arg1="${fail.build}" arg2="t"/>
+    </condition>
+    
+    <antcall target="fail.build.target"/>
+  </target>
+    
+	<target name="fail.build.target" if="my.fail.build">
+    <fail message="failing to test JIRA integration"/>
+  </target>
+    
+	<target name="init" depends="fail.check">
+  
+    <!-- check whether we need to fail the build -->
+    <condition property="my.fail.build">
+      <equals arg1="fail.build" arg2="t"/>
+    </condition>
+    
+	
+    	<!-- General config -->
+        <tstamp />
+
+        <property environment="env" />        
+        <property file="${basedir}/build.properties" />
+                
+        <!-- Directories -->
+       	<mkdir dir="${build.dir}" />
+       	<mkdir dir="${build.class.dir}" />
+       	<mkdir dir="${build.java.dir}" />
+       	<mkdir dir="${build.junit.dir}" />
+       	<mkdir dir="${build.metrics.dir}" />
+       	<mkdir dir="${build.sql.dir}" />
+       	<mkdir dir="${dist.dir}/web-app" />
+        
+		<!-- database config -->
+		<property file="${conf.dir}/db/database.properties" />
+		<echo>Database=${database}</echo>
+		<property file="${conf.dir}/db/${database}.properties" />
+		
+		<!-- Application server -->
+        <!--
+        <property file="${conf.dir}/as/appserver.properties" />    
+		<echo>Application server=${app.server}</echo>	
+		<property file="${conf.dir}/as/${app.server}.properties" />
+        -->
+       	
+   		<!-- Paths -->
+        <path id="project.class.path">
+    		<fileset dir="${lib.j2ee.dir}" 		includes="**/*.jar" />
+    		<fileset dir="${lib.junit.dir}" 	includes="**/*.jar" />
+    		<fileset dir="${lib.hibernate.dir}"	includes="**/*.jar" />
+    		<fileset dir="${lib.jdom.dir}"		includes="**/*.jar" />
+    		<fileset dir="${lib.commons.dir}"	includes="**/*.jar" />
+    		<fileset dir="${lib.webwork.dir}"	includes="**/*.jar" />
+    		<fileset dir="${lib.log4j.dir}"		includes="**/*.jar" />
+    		<fileset dir="${lib.clover.dir}"	includes="**/*" />
+     		<pathelement path="${build.class.dir}"/>
+        </path>
+        <path id="xdoclet.class.path">
+    		<fileset dir="${lib.xdoclet.dir}"	includes="**/*.jar" />
+    		<fileset dir="${lib.log4j.dir}" 	includes="**/*.jar" />
+    		<fileset dir="${lib.commons.dir}" 	includes="**/*.jar" />
+    		<fileset dir="${lib.hibernate.dir}"	includes="**/*.jar" />
+    		<fileset dir="${lib.j2ee.dir}" 		includes="**/*.jar" />
+    		<fileset dir="${lib.webwork.dir}"	includes="**/*.jar" />
+        </path>                       	
+        <path id="tests.class.path">
+            <path refid="project.class.path"/>
+            <pathelement location="${build.class.dir}"/>
+            <pathelement location="${tests.classes.dir}"/>
+        </path>                       	
+                     
+	</target>
+    
+    
+    
+    
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Main                                           -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="all" depends="init,clean,xdoclet,compile,jar,war,prepare-distribution">
+	<!--
+		<antcall target="clean" />
+		<antcall target="xdoclet" />
+		<antcall target="compile" />
+		<antcall target="jar" />
+		<antcall target="war" />
+	-->
+	<!--
+        <antcall target="prepare-distribution" />
+    -->
+	</target>
+    
+    
+    
+    
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Clean                                          -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="clean" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Cleaning                                             +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<delete>
+			<fileset dir="${build.dir}" />
+		</delete>
+	</target>
+	
+	
+	
+	
+<!-- ============================================== -->
+<!--                                                -->
+<!-- xDoclet                                        -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="xdoclet" depends="xdoclet.hibernate.mapping,xdoclet.hibernate.properties,xdoclet.hibernate.ddl,xdoclet.web,xdoclet.jboss,xdoclet.websphere">
+		<!--
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Running xDoclet                                      +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		<antcall target="xdoclet.hibernate.mapping" />
+		<antcall target="xdoclet.hibernate.properties" />
+		<antcall target="xdoclet.hibernate.ddl" />
+		<antcall target="xdoclet.web" />
+		<antcall target="xdoclet.jboss" />
+		<antcall target="xdoclet.websphere" />
+		-->
+	</target>
+
+
+	<target name="xdoclet.hibernate.mapping" depends="init">
+       	<delete>
+        	<fileset dir="${build.java.dir}" includes="**/*.hbm.xml"/>
+        </delete>
+	
+		<taskdef
+            name="hibernatedoclet"
+            classname="xdoclet.modules.hibernate.HibernateDocletTask"
+       		classpathref="xdoclet.class.path"
+       	/>	
+       	
+		<hibernatedoclet destdir="${build.java.dir}">
+			<fileset dir="${java.dir}">
+  				<include name="**/domain/**/*.java" /> 
+  			</fileset>
+  			
+  			<hibernate />
+  		</hibernatedoclet>	
+  	</target>
+  	
+  	
+  	<target name="xdoclet.hibernate.properties" depends="init">	 	
+  	
+  		<echo file="${build.class.dir}/hibernate.properties" append="false">
+hibernate.connection.datasource=${hibernate.datasource}
+		</echo>
+		
+  		<echo file="${build.class.dir}/hibernate.properties" append="true">
+hibernate.use_outer_join=${hibernate.outer.join}
+  		</echo>
+  		
+  		<echo file="${build.class.dir}/hibernate.properties" append="true">
+hibernate.jdbc.use_scrollable_resultset=${hibernate.scrollable.recordset}
+  		</echo>
+  		
+  		<echo file="${build.class.dir}/hibernate.properties" append="true">
+hibernate.dialect=${hibernate.dialect}
+  		</echo>
+  		
+  		<echo file="${build.class.dir}/hibernate.properties" append="true">
+hibernate.show_sql=${hibernate.show.sql}
+  		</echo>
+  		
+  	</target>
+  	
+  	
+	<target name="xdoclet.hibernate.ddl" depends="init">
+ 		<!-- Mapping Files -->
+		<fileset id="hibernate.mapping.files" dir="${build.java.dir}">
+    		<include name="**/*.hbm.xml" />
+		</fileset>
+    	<pathconvert refid="hibernate.mapping.files" property="hibernate.mappings" pathsep=" "/>
+    	
+    	<!-- Compile the domain classes -->
+    	<javac
+    		srcdir="${java.dir}"
+            destdir="${build.class.dir}"
+            debug="${compiler.debug}" 
+            deprecation="${compiler.deprecation}"
+            classpathref="project.class.path"
+        >
+            <!--compiler="${compiler.type}"-->
+        	<include name="**/domain/**/*.java" />
+        </javac>
+        
+    	<!-- Generate the DDL -->
+	    <java 
+	    	classname="cirrus.hibernate.tools.SchemaExport" 
+	    	fork="true"
+	    >
+        	<arg line="--quiet --delimiter=; --format --text --output=${build.sql.dir}/schemas.sql ${hibernate.mappings}"/>
+        	<jvmarg value="-Dhibernate.dialect=${hibernate.dialect}"/>
+         	<jvmarg value="-Dhibernate.connection.driver_class=${db.driver}"/>
+         	<jvmarg value="-Dhibernate.connection.url=${db.url}"/>
+         	<jvmarg value="-Dhibernate.connection.username=${db.user}"/>
+         	<jvmarg value="-Dhibernate.connection.password=${db.password}"/>
+         	
+         	<classpath>
+				<dirset dir="${build.class.dir}" />
+				<path 	refid="project.class.path"/>
+		 	</classpath>
+    	</java>
+	</target>  	
+  	
+		
+	<target name="xdoclet.web" depends="init">
+      	<taskdef 
+       		name="webdoclet" 
+       		classname="xdoclet.modules.web.WebDocletTask"
+       		classpathref="xdoclet.class.path"
+       	/>	
+       	
+      	<webdoclet 
+       		destdir="${build.dir}/WEB-INF" 
+       		mergedir="${xdoclet.merge.dir}/web"
+       	>
+       		<fileset dir="${web.dir}" includes="**/*Servlet.java" />
+       		<fileset dir="${web.dir}" includes="**/*Filter.java" />
+       		<fileset dir="${web.dir}" includes="**/*Action.java" />
+       		
+       		<deploymentdescriptor 
+       			servletspec="${servlet.spec.version}"
+       			distributable="false" 
+       		>
+       			<taglib
+                    uri="sitemesh-decorator"
+                    location="/WEB-INF/sitemesh-decorator.tld"
+                />
+       			<taglib
+                    uri="sitemesh-page"
+                    location="/WEB-INF/sitemesh-page.tld"
+                />
+       			<taglib
+                    uri="webwork"
+                    location="/WEB-INF/lib/webwork.jar"
+                />
+            </deploymentdescriptor>
+            
+            <webworkconfigproperties destdir="${build.class.dir}" />
+       	</webdoclet>
+	</target>
+	
+	<target name="xdoclet.jboss" depends="init">
+		<ant antfile="build-jboss.xml" target="xdoclet" />
+	</target>
+	
+	<target name="xdoclet.websphere" depends="init">
+		<ant antfile="build-websphere.xml" target="xdoclet" />
+	</target>
+	
+	
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Compile                                        -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="compile" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Compiling                                            +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+      	<javac
+            destdir="${build.class.dir}"
+            debug="${compiler.debug}" 
+            deprecation="${compiler.deprecation}"
+            classpathref="project.class.path"
+        >
+            <!--compiler="${compiler.type}"-->
+        	<src path="${java.dir}" />
+            <src path="${build.java.dir}" />
+            <src path="${web.dir}" />
+        </javac>
+        
+        <copy todir="${build.class.dir}">
+        	<fileset dir="${resources.dir}" includes="**/*.properties" />
+        </copy>
+	</target>
+
+
+	
+	
+	
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Jar                                            -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="jar" depends="init">
+	</target>
+
+
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- War                                            -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="war" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Building war files                                   +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<antcall target="war.webwork" />
+	</target>
+	
+	<target name="war.webwork" depends="init">
+		<delete>
+			<fileset dir="${dist.dir}/web-app" includes="${war.name}" />
+		</delete>
+		
+		<war 
+			destFile="${dist.dir}/web-app/${war.name}"
+			webxml="${build.dir}/WEB-INF/web.xml"
+		>
+    		<fileset dir="${web.dir}/jsp"  		 includes="**/*" />
+    		<fileset dir="${web.dir}/css"  		 includes="**/*" />
+    		<fileset dir="${web.dir}/vm"  		 includes="**/*" />
+    		<fileset dir="${web.dir}">
+    			<include name="images/*" />
+    			<include name="dataimages/*" />
+    		</fileset>
+    		<fileset dir="${build.dir}">	
+    			<include name="WEB-INF/*" />
+    			
+    			<exclude name="WEB-INF/web.xml" />
+    		</fileset>
+    		
+    		<lib dir="${lib.commons.dir}"    includes="*.jar" />
+    		<lib dir="${lib.hibernate.dir}"  includes="*.jar" />
+    		<lib dir="${lib.jdom.dir}" 	 	 includes="jdom.jar" />
+    		<lib dir="${lib.junit.dir}" 	 includes="junit.jar" />
+    		<lib dir="${lib.log4j.dir}" 	 includes="log4j.jar" />
+    		<lib dir="${lib.sitemesh.dir}" 	 includes="sitemesh.jar" />
+    		<lib dir="${lib.velocity.dir}" 	 includes="velocity.jar" />
+    		<lib dir="${lib.webwork.dir}" 	 includes="*.jar" />
+    		
+    		<classes dir="${build.class.dir}">
+    			<include name="**/*.properties" />
+    			<include name="**/web/**/*.class" />
+    			<include name="**/domain/**/*.class" />
+            	<include name="**/util/**/*.class" />
+            	
+            	<exclude name="**/test/**/*" />
+    		</classes>    		
+    		<classes 
+    			dir="${build.java.dir}" 	
+    			includes="**/*.hbm.xml" 
+    		/>
+    		<classes 
+    			dir="${resources.dir}" 	
+    			includes="**/*" 
+    		/>
+    		
+    		<webinf dir="${web.dir}/WEB-INF">
+    			<include name="**/*" />
+    		</webinf>
+    		<webinf dir="${build.dir}/WEB-INF">
+    			<include name="**/*" />
+    			<exclude name="web.xml" />
+    		</webinf>
+        
+        <metainf dir="${web.dir}/META_INF">
+          <include name="context.xml"/>
+        </metainf>
+		</war>  
+	</target>
+
+
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Ear                                            -->
+<!--                                                -->
+<!-- ============================================== -->
+	<target name="ear" depends="war">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Building ear files                                   +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<delete>
+			<fileset dir="${dist.dir}/web-app" includes="${ear.name}" />
+		</delete>
+		
+		<ear 
+			destfile="${dist.dir}/web-app/${ear.name}" 
+			appxml="${java.dir}/META-INF/application.xml"
+		>
+      		<fileset dir="${dist.dir}/web-app"	includes="${war.name}" />
+      	</ear>
+      </target>	
+
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Test                                           -->
+<!--                                                -->
+<!-- ============================================== -->
+
+    <!-- ===================================================================
+          Compile Test Code
+         =================================================================== -->
+    <target name="compile-tests" depends="compile">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${tests.classes.dir}"/>
+
+        <javac destdir="${tests.classes.dir}"
+            debug="${compiler.debug}" 
+            deprecation="${compiler.deprecation}"
+            classpathref="project.class.path">
+            <!--compiler="${compiler.type}"-->
+            <classpath refid="project.class.path" />
+            <src path="${src.tests.dir}" />
+        </javac>
+        <copy todir="${tests.classes.dir}" includeEmptyDirs="false">
+            <fileset dir="${src.tests.dir}">
+                <include name="**" />
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    
+	<target name="test" depends="init, compile-tests">
+        <mkdir dir="work"/>
+        <mkdir dir="${tests.data.dir}/junit"/>
+        <mkdir dir="${dist.tests.dir}"/>
+        <mkdir dir="${tests.reports.dir}/junit"/>
+        <junit printsummary="on" haltonfailure="false" fork="yes" dir="work" showoutput="false">
+            <classpath refid="tests.class.path"/>
+            <formatter type="brief" usefile="false"/>
+            <formatter type="xml"/>
+            <batchtest todir="${tests.data.dir}/junit">
+                <fileset dir="${tests.classes.dir}">
+                    <include name="**/*Test.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+		<junitreport todir="${tests.reports.dir}/junit">
+			<fileset dir="${tests.data.dir}/junit">
+		    	<include name="TEST-*.xml"/>
+		  	</fileset>
+		  	<report format="frames" todir="${tests.reports.dir}/junit"/>
+		</junitreport>
+
+	</target>	
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Prepare Disttribution                          -->
+<!--                                                -->
+<!-- ============================================== -->
+	<target name="prepare-distribution" depends="init">
+      <mkdir dir="${dist.dir}/database" />
+      
+      <copy todir="${dist.dir}/web-app">
+          <fileset dir="${deployment.dir}/web-app">
+              <include name="**/*" />
+          </fileset>
+      </copy>
+
+      <copy todir="${dist.dir}/database">
+          <fileset dir="${deployment.dir}/database">
+              <include name="**/*" />
+          </fileset>
+          <fileset dir="${sql.dir}">
+              <include name="*.sql" />
+          </fileset>
+      </copy>
+      
+  </target>	
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Deploy                                         -->
+<!--                                                -->
+<!-- ============================================== -->
+<!--
+	<target name="deploy" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Deploying into the application server                +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<antcall target="deploy.jboss" />
+		<antcall target="deploy.orion" />
+		<antcall target="deploy.weblogic" />
+		<antcall target="deploy.tomcat" />
+	</target>
+	
+	<target name="deploy.jboss" if="jboss">
+		<ant antfile="build-jboss.xml" target="deploy" />
+	</target>	
+	
+	<target name="deploy.orion" if="orion">
+		<ant antfile="build-orion.xml" target="deploy" />
+	</target>	
+	
+	<target name="deploy.weblogic" if="weblogic">
+		<ant antfile="build-weblogic.xml" target="deploy" />
+	</target>	
+	
+	<target name="deploy.tomcat" if="tomcat">
+		<ant antfile="build-tomcat.xml" target="deploy" />
+	</target>	
+-->
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Undeploy                                       -->
+<!--                                                -->
+<!-- ============================================== -->
+<!--
+	<target name="undeploy">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Undeploying from the application server              +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<antcall target="undeploy.jboss" />
+		<antcall target="undeploy.orion" />
+		<antcall target="undeploy.weblogic" />
+		<antcall target="undeploy.tomcat" />
+	</target>	
+
+	<target name="undeploy.jboss" depends="init" if="jboss">
+		<ant antfile="build-jboss.xml" target="undeploy" />
+	</target>
+
+	<target name="undeploy.orion" depends="init" if="orion">
+		<ant antfile="build-orion.xml" target="undeploy" />
+	</target>
+	
+	<target name="undeploy.weblogic" if="weblogic">
+		<ant antfile="build-weblogic.xml" target="undeploy" />
+	</target>	
+	
+	<target name="undeploy.tomcat" if="tomcat">
+		<ant antfile="build-tomcat.xml" target="undeploy" />
+	</target>	
+-->
+	
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- DB                                             -->
+<!--                                                -->
+<!-- ============================================== -->
+<!--
+	<target name="db" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Initialize the database                              +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<ant antfile="build-database.xml" target="data" />
+	</target>
+-->
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Formatting                                     -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="jalopy" depends="init">
+		<echo>+ ===================================================== +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+  Formatting the source code                           +</echo>
+		<echo>+                                                       +</echo>
+		<echo>+ ===================================================== +</echo>
+		
+		<taskdef
+            name="jalopy"
+            classname="de.hunsicker.jalopy.plugin.ant.AntPlugin"
+        >
+			<classpath>
+				<fileset dir="${lib.jalopy.dir}" includes="**/*.jar" />
+				<fileset dir="${lib.log4j.dir}"  includes="**/*.jar" />
+				<fileset dir="${lib.jdom.dir}"   includes="**/*.jar" />
+				<fileset dir="${lib.oro.dir}"    includes="**/*.jar" />
+			</classpath>
+		</taskdef>
+        		
+  		<jalopy 
+            convention="${conf.dir}/jalopy.xml"
+            loglevel="warn"
+            threads="2"
+        >
+      		<fileset dir="${build.java.dir}" includes="**/*.java" />
+      		<fileset dir="${java.dir}" 	  	 includes="**/*.java" />
+      		<fileset dir="${web.dir}" 		 includes="**/*.java" />
+    	</jalopy>		
+	</target>
+
+
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Metrics                                        -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<target name="metrics" depends="init">
+		<taskdef 
+	   		name="javancss"
+	        classname="javancss.JavancssAntTask"
+	    >
+			<classpath>
+				<fileset dir="${lib.javancss.dir}" includes="**/*.jar" />
+			</classpath>
+	   	</taskdef>
+
+		<!-- Business classes -->
+		<javancss
+			srcdir="${java.dir}"
+			includes="**/*.java"
+    		generateReport="true"
+            outputfile="${build.metrics.dir}/business.xml"
+            format="xml"
+            functionMetrics="false"
+    	/>
+    	
+    	<xslt
+    		destdir="${build.metrics.dir}"
+    		style="${lib.javancss.dir}/xslt/javancss2html.xsl"
+    		in="${build.metrics.dir}/business.xml"
+    		out="${build.metrics.dir}/business.html"
+    	/>
+		
+		<!-- xdoclet classes -->
+		<javancss
+			srcdir="${build.java.dir}"
+			includes="**/*.java"
+    		generateReport="true"
+            outputfile="${build.metrics.dir}/xdoclet.xml"
+            format="xml"
+            functionMetrics="false"
+    	/>
+    	
+    	<xslt
+    		destdir="${build.metrics.dir}"
+    		style="${lib.javancss.dir}/xslt/javancss2html.xsl"
+    		in="${build.metrics.dir}/xdoclet.xml"
+    		out="${build.metrics.dir}/xdoclet.html"
+    	/>
+		
+		<!-- Web classes -->
+		<javancss
+			srcdir="${web.dir}"
+			includes="**/*.java"
+    		generateReport="true"
+            outputfile="${build.metrics.dir}/web.xml"
+            format="xml"
+            functionMetrics="false"
+    	/>
+    	
+    	<xslt
+    		destdir="${build.metrics.dir}"
+    		style="${lib.javancss.dir}/xslt/javancss2html.xsl"
+    		in="${build.metrics.dir}/web.xml"
+    		out="${build.metrics.dir}/web.html"
+    	/>
+	</target>
+
+
+<!-- ============================================== -->
+<!--                                                -->
+<!-- Clover                                         -->
+<!--                                                -->
+<!-- ============================================== -->
+
+	<!-- Couldn't get this to work
+	<taskdef resource="com/cenqua/ant/antlib.xml" classpath="${lib.clover.dir}/cenquatasks.jar"/>
+ 	<extendclasspath path="${lib.clover.dir}/clover.jar"/>
+ 	<taskdef resource="clovertasks" classpath="${lib.clover.dir}/clover.jar"/>	
+ 	--> 	
+	<taskdef resource="clovertasks"/>
+	<typedef resource="clovertypes"/>
+	
+	<target name="with.clover">
+		<clover-setup initString="xpetstore_coverage.db"/> <!-- clovercompiler="${compiler}"/>-->
+	</target>
+
+	<target name="test.with.clover.and.report" depends="with.clover, test">
+		<mkdir dir="${tests.reports.dir}/clover"/>
+		<mkdir dir="${tests.data.dir}/clover"/>
+		<clover-report>
+			<current outfile="${tests.reports.dir}/clover" title="xPetStore Test Coverage">
+				<format type="html"/>
+			</current>
+		</clover-report>
+		<clover-report>
+			<current outfile="${tests.data.dir}/clover/clover.xml" title="xPetStore Test Coverage">
+				<format type="xml"/>
+			</current>
+		</clover-report>
+	</target>
+	
+</project>

@@ -1,0 +1,37 @@
+<Context path="@context@" debug="0" privilaged="true">
+
+  <!-- xPetstore datasource -->
+  <Resource name="jdbc/xpetstoreDS" auth="Container" type="javax.sql.DataSource"/>		 
+  <ResourceParams name="jdbc/xpetstoreDS">
+    <parameter> 
+      <name>factory</name>
+      <value>org.apache.commons.dbcp.BasicDataSourceFactory</value>
+    </parameter>            
+    <parameter>
+      <name>username</name>
+      <value>@db.user@</value>
+    </parameter>
+    <parameter>
+      <name>password</name>
+      <value>@db.password@</value>
+    </parameter>
+    <parameter>
+      <name>driverClassName</name>
+      <value>@db.driver@</value>
+    </parameter>
+    <parameter>
+      <name>url</name>
+      <value>@db.url@</value>
+    </parameter>
+  </ResourceParams>
+
+  <!-- xPetstore mail session -->
+  <Resource name="mail/xpetstore/MailSession" 
+      auth="Container" type="javax.mail.Session"/>
+  <ResourceParams name="mail/xpetstore/MailSession">
+    <parameter>
+      <name>mail.smtp.host</name>
+      <value>@mail.host@</value>
+    </parameter>
+  </ResourceParams>
+</Context>

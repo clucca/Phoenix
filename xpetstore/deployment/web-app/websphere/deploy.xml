@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+
+<project name="xpetstore-servlet" basedir="." default="">
+    <property name="name" value="${ant.project.name}"/>
+    
+    <!-- first try loading the machine specific properties for this project -->
+    <property file="${user.home}/.anthill3/${name}.properties"/>
+    
+    <!-- first try loading the machine specific properties for this project -->
+    <property name="install.dir.name"  location="${user.home}/.anthill3"/>
+    <property name="install.file.name"  location="${install.dir.name}/${name}.websphere.installed"/>
+    <property file="${install.file.name}"/>
+    
+    <!-- now set the defaults -->
+    <property name="db.driver"          value="com.mysql.jdbc.Driver" />
+    <property name="db.url"             value="jdbc:mysql://127.0.0.1:3306/xpetstore" />
+    <property name="db.user"            value="xpetstore" />
+    <property name="db.password"        value="password" />
+    <property name="mail.host"          value="mail.urbancode.com" />
+    
+    <property name="work.dir" 		location="work"/>
+    <property environment="env"/>
+    <property file="websphere.properties"/>
+    
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          Classpaths
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+    <property name="build.sysclasspath" value="last" />
+    <path id="tomcat.classpath">
+		    <pathelement path="catalina-ant.jar"/>
+    </path>
+    
+    <!-- ===================================================================
+          deployment targets
+         =================================================================== -->
+    <target name="deploy" depends="prepare-war, prepare-ear">
+        <available file="${install.file.name}" property="upgrade"/>
+        <antcall target="install" />
+    </target>
+
+    <target name="install">
+        <mkdir dir="${install.dir.name}"/>
+        <exec executable="${websphere.home.dir}/bin/wsadmin.bat" spawn="true">
+	    <arg value="-c"/>
+	    <arg value="$AdminApp update xpetstore app {-contents xpetstore-servlet.ear -operation update}"/>
+	    <arg value="-lang"/>
+	    <arg value="jacl"/>
+	    <arg value="-user"/>
+	    <arg value="admin"/>
+	    <arg value="-password"/>
+	    <arg value="admin"/>
+	</exec>
+        <touch file="${install.file.name}" />
+    </target>
+
+    <target name="prepare-war">
+        <delete dir="${work.dir}" failonerror="false"/>
+        <mkdir dir="${work.dir}"/>
+        
+        <unwar src="../${name}.war" dest="${work.dir}"/>
+        <delete file="../${name}.war"/>
+
+        <replace file="${work.dir}/WEB-INF/classes/hibernate.properties">
+            <replacefilter token="@jndi.datasource@" value="${hibernate.datasource}"/>
+        </replace>
+        <replace file="${work.dir}/WEB-INF/web.xml">
+            <replacefilter token="@jndi.mail.session@" value="${websphere.mail.session}"/>
+            <replacefilter token="@jndi.datasource@" value="${websphere.datasource}"/>
+        </replace>
+        
+        <copy todir="${work.dir}/WEB-INF">
+            <fileset dir=".">
+                <include name="ibm-web-*.xml"/>
+            </fileset>
+        </copy>
+        
+        <jar destfile="../${name}.war" basedir="${work.dir}"/>
+    </target>
+    
+    <target name="prepare-ear">
+	<ear  destfile="${name}.ear" 
+            appxml="application.xml"
+	>
+	<fileset dir=".." includes="${name}.war" />
+      	</ear>
+    </target>
+</project>

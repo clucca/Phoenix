@@ -1,0 +1,13 @@
+
+<project name="xpetstore-servlet" basedir="." default="deploy">
+    <property name="name" value="${ant.project.name}"/>
+    
+    
+    <!-- ===================================================================
+          deployment targets
+         =================================================================== -->
+    <target name="deploy" if="appserver">
+		<ant antfile="deploy.xml" dir="${appserver}" target="deploy" />
+    </target>
+    
+</project>

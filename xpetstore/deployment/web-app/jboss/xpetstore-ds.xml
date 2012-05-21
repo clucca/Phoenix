@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <datasources>
+       <local-tx-datasource>
+           <jndi-name>xpetstoreDS</jndi-name>
+           <connection-url>jdbc:mysql://@db.host@:3306/xpetstore</connection-url>
+           <driver-class>com.mysql.jdbc.Driver</driver-class>
+           <user-name>@db.user@</user-name>
+           <password>@db.password@</password>
+       </local-tx-datasource>
+   </datasources>

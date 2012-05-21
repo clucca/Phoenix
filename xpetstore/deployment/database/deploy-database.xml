@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+
+<project name="xpetstore-servlet" basedir="." default="deploy">
+    <property name="name" 			       	value="${ant.project.name}"/>
+    
+    <!-- first try loading the machine specific properties for this project -->
+    <property file="${user.home}/.anthill3/${name}.properties"/>
+    
+    <!-- first try loading the machine specific properties for this project -->
+    <property name="install.dir.name"  location="${user.home}/.anthill3"/>
+    <property name="install.file.name"  location="${install.dir.name}/${name}.db.installed"/>
+    <property file="${install.file.name}"/>
+    
+    <!-- now set the defaults -->
+    <property name="db.driver"          value="com.mysql.jdbc.Driver" />
+    <property name="db.url"             value="jdbc:mysql://localhost:3306/" />
+    <property name="db.root.user"       value="root" />
+    <property name="db.root.password"   value="stb1734aa!" />
+    <property name="db.user"            value="xpetstore" />
+    <property name="db.password"        value="password" />
+    <property name="installed.version" 	value="0.0.0"/>
+    <property name="version" 	          value="0.0.0"/>
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          Task Definitions
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml"/>
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          Classpaths
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+    <path id="classpath">
+        <fileset dir=".">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- ===================================================================
+          deployment targets
+         =================================================================== -->
+    <target name="deploy">
+        <available file="${install.file.name}" property="upgrade"/>
+        <antcall target="clean-install" />
+        <antcall target="upgrade" />
+    </target>
+    
+    <target name="upgrade" if="upgrade">
+        <echo>installed version is: ${installed.version}</echo>
+
+        <!-- make sure we have the install directory -->
+        <if>
+            <equals arg1="${installed.version}" arg2="${version}"/>
+            <then>
+                <!-- do nothing -->
+                <echo>Already at version ${version}.  No database upgrade required.</echo>
+            </then>
+            <elseif>
+               	<equals arg1="${installed.version}" arg2="a.b.c"/>
+                <then>
+                    <antcall target="upgrade-from-a.b.c-to-0.0.0"/>
+                </then>
+            </elseif>
+            <elseif>
+               	<equals arg1="${installed.version}" arg2="x.y.z"/>
+                <then>
+                    <antcall target="upgrade-from-x.y.z-to-a.b.c"/>
+                    <antcall target="upgrade-from-a.b.c-to-0.0.0"/>
+                </then>
+            </elseif>
+          	<else>
+                <echo message="No database changes since version ${installed.version}."/>
+            </else>
+        </if>
+    </target>
+
+    <target name="clean-install" unless="upgrade">
+        <!-- Schema -->
+        <sql 
+          src="schemas.sql"
+            driver="${db.driver}" 
+            url="${db.url}"
+            userid="${db.root.user}" 
+            password="${db.root.password}"
+            classpathref="classpath"
+            onerror="continue"
+        />
+        
+        <!-- Data -->
+        <sql 
+          src="data.sql"
+            driver="${db.driver}" 
+            url="${db.url}"
+            userid="${db.root.user}" 
+            password="${db.root.password}"
+            classpathref="classpath"
+        />
+        <mkdir dir="${install.dir.name}"/>
+        <touch file="${install.file.name}" />
+    </target>
+    
+    <target name="upgrade-from-a.b.c-to-0.0.0">
+        <echo>No database changes</echo>
+    </target>
+    
+    <target name="upgrade-from-x.y.z-to-a.b.c">
+        <echo>No database changes</echo>
+    </target>
+    
+</project>
